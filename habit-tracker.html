@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Habit Tracker 🌿</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#FAFAF7;--bg2:#F2F0EA;--bg3:#E8E5DB;
+  --text:#2C2C2A;--text2:#5F5E5A;--text3:#888780;
+  --border:rgba(44,44,42,0.12);--border2:rgba(44,44,42,0.22);
+  --accent:#D85A30;--accent2:#B85C2A;
+  --radius:12px;--radius-sm:8px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:88px;font-size:15px;font-weight:400;line-height:1.5}
+h1{font-size:32px;font-weight:700;color:var(--text);line-height:1.2}
+h2{font-size:24px;font-weight:600;color:var(--text);line-height:1.3}
+h3{font-size:20px;font-weight:600;color:var(--text);line-height:1.3}
+.nav{position:fixed;bottom:0;left:0;right:0;z-index:50;background:var(--bg);border-top:0.5px solid var(--border);display:flex;max-width:480px;margin:0 auto}
+.nb{flex:1;padding:8px 0 12px;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;font-size:10px;font-weight:500;color:var(--text3);display:flex;flex-direction:column;align-items:center;gap:2px;outline:none;transition:color .2s}
+.nb.on{color:var(--accent)}
+.nbar{display:block;width:18px;height:2px;background:var(--accent);border-radius:1px;visibility:hidden;margin-top:1px}
+.nb.on .nbar{visibility:visible}
+.wrap{max-width:480px;margin:0 auto}
+.view{padding:18px 14px 20px;display:none}
+.view.on{display:block}
+.card{background:#fff;border:0.5px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.04)}
+.ctit{font-size:14px;font-weight:600;color:var(--text);margin-bottom:12px}
+.hr{background:#fff;border:0.5px solid var(--border);border-left:3px solid var(--border);border-radius:0 var(--radius) var(--radius) 0;padding:10px 12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;transition:all .2s}
+.hr.dn{background:var(--bg2);border-left-color:var(--accent)}
+.chk{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:12px;color:white;background:transparent;transition:all .2s}
+.chk.on{background:var(--accent);border-color:var(--accent)}
+.pb{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:3px}
+.pf{height:100%;border-radius:3px;transition:width .5s}
+.bdg{font-size:11px;font-weight:500;background:#FAEEDA;color:#633806;padding:2px 7px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.mc{background:var(--bg2);border-radius:var(--radius-sm);padding:14px;text-align:center}
+.ml{font-size:10px;font-weight:500;letter-spacing:1.3px;text-transform:uppercase;color:var(--text3);margin-bottom:5px}
+.mv{font-size:32px;font-weight:700;line-height:1}
+.ms{font-size:12px;font-weight:400;color:var(--text3);margin-top:4px}
+.ins{font-size:13px;font-weight:400;line-height:1.6;padding:9px 12px;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:7px;color:var(--text)}
+.cg{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin:6px 0}
+.cd{aspect-ratio:1;border-radius:6px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;cursor:default}
+.wg{display:grid;grid-template-columns:28px repeat(7,minmax(0,1fr));gap:3px;align-items:center;margin-bottom:4px}
+.wc{height:28px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .15s}
+input[type=text],input[type=number]{background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:9px 11px;font-family:'Inter',sans-serif;color:var(--text);font-size:14px;font-weight:400;outline:none;width:100%}
+input[type=text]:focus,input[type=number]:focus{border-color:var(--accent);background:#fff}
+input.sm{padding:5px 7px;font-size:13px;font-weight:500;width:auto}
+.sbtn{width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:background .2s}
+.sbtn:hover{background:var(--accent2)}
+.sbtn2{padding:10px 18px;background:var(--bg2);color:var(--text);border:0.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
+.sbtn2:hover{background:var(--bg3)}
+.fbtn{padding:7px 16px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;font-family:'Inter',sans-serif;color:var(--text2);cursor:pointer;transition:all .18s;white-space:nowrap}
+.fbtn.on{background:var(--accent);color:white;border-color:var(--accent)}
+.tbtn{padding:6px 14px;border-radius:20px;border:0.5px solid var(--border2);background:var(--bg2);font-size:12px;font-weight:500;font-family:'Inter',sans-serif;color:var(--text2);cursor:pointer;transition:all .18s}
+.tbtn.on{background:var(--text);color:#fff;border-color:var(--text)}
+.clr-dot{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .15s,border-color .15s;flex-shrink:0}
+.clr-dot.on{border-color:var(--text);transform:scale(1.18)}
+.del-btn{background:none;border:none;cursor:pointer;font-size:16px;padding:2px 4px;opacity:.45;transition:opacity .2s;font-family:'Inter',sans-serif}
+.del-btn:hover{opacity:1}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+.modal{background:var(--bg);border-radius:20px 20px 0 0;padding:22px 18px 36px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+.modal-hidden{display:none}
+.lbl{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block}
+.frow{margin-bottom:14px}
+.emoji-big{font-size:36px;text-align:center;display:block;cursor:pointer;padding:10px;background:var(--bg2);border-radius:var(--radius-sm);border:0.5px solid var(--border2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="nav" class="nav wrap"></div>
+  <div id="v-today" class="view on"></div>
+  <div id="v-week" class="view"></div>
+  <div id="v-month" class="view"></div>
+  <div id="v-trends" class="view"></div>
+  <div id="v-goals" class="view"></div>
+</div>
+
+<!-- Add Habit Modal -->
+<div id="modal" class="modal-overlay modal-hidden" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <h3>New habit</h3>
+      <button onclick="closeModal()" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text3);font-family:'Inter',sans-serif">×</button>
+    </div>
+
+    <div class="frow" style="display:grid;grid-template-columns:64px 1fr;gap:10px;align-items:end">
+      <div>
+        <span class="lbl">Icon</span>
+        <input type="text" id="new-icon" value="⭐" maxlength="2" style="text-align:center;font-size:24px;padding:8px 4px;cursor:text">
+      </div>
+      <div>
+        <span class="lbl">Habit name</span>
+        <input type="text" id="new-name" placeholder="e.g. Cold shower" maxlength="30">
+      </div>
+    </div>
+
+    <div class="frow">
+      <span class="lbl">Type</span>
+      <div style="display:flex;gap:8px">
+        <button class="tbtn on" id="tbtn-bool" onclick="setType('bool')">Yes / No</button>
+        <button class="tbtn" id="tbtn-num" onclick="setType('num')">With target</button>
+      </div>
+    </div>
+
+    <div id="num-fields" style="display:none">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div>
+          <span class="lbl">Unit</span>
+          <input type="text" id="new-unit" placeholder="min, steps, hrs…" maxlength="10">
+        </div>
+        <div>
+          <span class="lbl">Daily target</span>
+          <input type="number" id="new-def" placeholder="30" min="0">
+        </div>
+      </div>
+    </div>
+
+    <div class="frow">
+      <span class="lbl">Color</span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px">
+        ${['#378ADD','#7F77DD','#D85A30','#639922','#EF9F27','#D4537E','#1D9E75','#BA7517','#E24B4A','#5B8DEF','#A855F7','#14B8A6'].map((c,i)=>
+          `<div class="clr-dot${i===0?' on':''}" style="background:${c}" data-c="${c}" onclick="pickColor(this)"></div>`
+        ).join('')}
+      </div>
+    </div>
+
+    <button class="sbtn" onclick="addHabit()">Add habit</button>
+    <div id="modal-err" style="color:#D85A30;font-size:12px;font-weight:500;text-align:center;margin-top:8px;min-height:16px"></div>
+  </div>
+</div>
+
+<script>
+const BASE_H=[
+  {id:'sleep',name:'Sleep',icon:'🌙',unit:'hrs',def:8,c:'#378ADD'},
+  {id:'meditation',name:'Meditation',icon:'🧘',unit:'min',def:10,c:'#7F77DD'},
+  {id:'reading',name:'Read',icon:'📚',unit:'min',def:20,c:'#D85A30'},
+  {id:'gym',name:'Gym',icon:'💪',unit:'min',def:30,c:'#639922'},
+  {id:'speaking',name:'Speaking',icon:'🗣️',unit:'min',def:30,c:'#EF9F27'},
+  {id:'hipopresivos',name:'Hipopresivos',icon:'🫁',unit:'min',def:10,c:'#D4537E'},
+  {id:'steps',name:'Steps',icon:'👣',unit:'steps',def:10000,c:'#1D9E75'},
+  {id:'stretching',name:'Stretching',icon:'🤸',unit:'min',def:10,c:'#BA7517'},
+  {id:'nosugar',name:'No sugar',icon:'🚫',unit:'',def:1,c:'#E24B4A',bool:true},
+  {id:'healthy',name:'Eat healthy',icon:'🥗',unit:'',def:1,c:'#3B6D11',bool:true},
+];
+const WEEK_GOAL=5;
+let customH=[],logs={},goals={},trendDays=30;
+let calDate={y:new Date().getFullYear(),m:new Date().getMonth()};
+let selDay=null,curTab='today',scoreChart=null;
+let newType='bool',newColor='#378ADD';
+
+function H(){return[...BASE_H,...customH];}
+
+/* ── STORAGE ── */
+function save(){
+  try{localStorage.setItem('ht_v6',JSON.stringify({logs,goals,customH}));}catch(e){}
+}
+function load(){
+  try{
+    const r=localStorage.getItem('ht_v6');
+    if(r){const d=JSON.parse(r);if(d.logs)logs=d.logs;if(d.goals)goals=d.goals;if(d.customH)customH=d.customH;}
+  }catch(e){}
+  H().forEach(h=>{if(goals[h.id]==null)goals[h.id]=h.def;});
+}
+
+/* ── HELPERS ── */
+function ds(d){return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
+function T(){return ds(new Date());}
+function addD(s,n){const[y,m,d]=s.split('-').map(Number);return ds(new Date(y,m-1,d+n));}
+function lastN(n){const t=T();return Array.from({length:n},(_,i)=>addD(t,-(n-1-i)));}
+function weekOf(ref){
+  const[y,m,d]=(ref||T()).split('-').map(Number);const dt=new Date(y,m-1,d);
+  const off=dt.getDay()===0?-6:1-dt.getDay();
+  return Array.from({length:7},(_,i)=>ds(new Date(y,m-1,d+off+i)));
+}
+function mDays(y,m){
+  const f=new Date(y,m,1),l=new Date(y,m+1,0);
+  const pad=f.getDay()===0?6:f.getDay()-1,days=[];
+  for(let i=pad;i>0;i--)days.push({date:ds(new Date(y,m,1-i)),own:false});
+  for(let i=1;i<=l.getDate();i++)days.push({date:ds(new Date(y,m,i)),own:true});
+  const rem=7-(days.length%7);if(rem<7)for(let i=1;i<=rem;i++)days.push({date:ds(new Date(y,m+1,i)),own:false});
+  return days;
+}
+function dScore(date){const dl=logs[date]||{};const all=H();return all.filter(h=>dl[h.id]?.done).length/all.length;}
+function gStreak(hid){let n=0,d=T();while(logs[d]?.[hid]?.done){n++;d=addD(d,-1);}return n;}
+function gCons(hid,days=30){return Math.round(lastN(days).filter(d=>logs[d]?.[hid]?.done).length/days*100);}
+function gGrade(p){if(p>=90)return{g:'A',c:'#639922'};if(p>=75)return{g:'B',c:'#EF9F27'};if(p>=60)return{g:'C',c:'#D85A30'};if(p>=40)return{g:'D',c:'#993C1D'};return{g:'F',c:'#A32D2D'};}
+function pb(p,c){return`<div class="pb"><div class="pf" style="width:${Math.min(p,100)}%;background:${c}"></div></div>`;}
+
+function tog(date,hid){
+  if(!logs[date])logs[date]={};if(!logs[date][hid])logs[date][hid]={};
+  logs[date][hid].done=!logs[date][hid].done;save();
+}
+function setV(date,hid,v){
+  if(!logs[date])logs[date]={};if(!logs[date][hid])logs[date][hid]={};
+  logs[date][hid].value=v===''?null:+v;save();
+}
+
+/* ── NAV ── */
+const TABS=[{id:'today',icon:'☀️',label:'Today'},{id:'week',icon:'📅',label:'Week'},{id:'month',icon:'🗓️',label:'Month'},{id:'trends',icon:'📊',label:'Trends'},{id:'goals',icon:'🎯',label:'Goals'}];
+function rNav(){
+  document.getElementById('nav').innerHTML=TABS.map(t=>`
+    <button class="nb${curTab===t.id?' on':''}" onclick="go('${t.id}')">
+      <span style="font-size:18px">${t.icon}</span><span>${t.label}</span><span class="nbar"></span>
+    </button>`).join('');
+}
+function go(id){
+  document.getElementById('v-'+curTab).classList.remove('on');curTab=id;
+  document.getElementById('v-'+id).classList.add('on');rNav();
+  ({today:rToday,week:rWeek,month:rMonth,trends:rTrends,goals:rGoals})[id]();
+}
+
+/* ── MODAL ── */
+function openModal(){
+  document.getElementById('modal').classList.remove('modal-hidden');
+  document.getElementById('new-name').focus();
+}
+function closeModal(e){
+  if(e&&e.target!==document.getElementById('modal'))return;
+  document.getElementById('modal').classList.add('modal-hidden');
+  document.getElementById('modal-err').textContent='';
+}
+function setType(t){
+  newType=t;
+  document.getElementById('tbtn-bool').classList.toggle('on',t==='bool');
+  document.getElementById('tbtn-num').classList.toggle('on',t==='num');
+  document.getElementById('num-fields').style.display=t==='num'?'block':'none';
+}
+function pickColor(el){
+  document.querySelectorAll('.clr-dot').forEach(d=>d.classList.remove('on'));
+  el.classList.add('on');newColor=el.dataset.c;
+}
+function addHabit(){
+  const name=document.getElementById('new-name').value.trim();
+  const icon=document.getElementById('new-icon').value.trim()||'⭐';
+  if(!name){document.getElementById('modal-err').textContent='Please enter a habit name.';return;}
+  const id='custom_'+Date.now();
+  const isBool=newType==='bool';
+  const unit=isBool?'':(document.getElementById('new-unit').value.trim()||'');
+  const def=isBool?1:(+document.getElementById('new-def').value||1);
+  const h={id,name,icon,unit,def,c:newColor,bool:isBool,custom:true};
+  customH.push(h);goals[h.id]=h.def;save();
+  document.getElementById('modal').classList.add('modal-hidden');
+  document.getElementById('new-name').value='';
+  document.getElementById('new-icon').value='⭐';
+  document.getElementById('modal-err').textContent='';
+  rGoals();
+}
+function deleteHabit(id){
+  if(!confirm('Remove this habit? Your past logs will be kept.'))return;
+  customH=customH.filter(h=>h.id!==id);save();rGoals();
+}
+
+/* ── TODAY ── */
+function ring(pct,sub){
+  const r=72,c=2*Math.PI*r,o=(c*(1-pct/100)).toFixed(1);
+  return`<div style="display:flex;justify-content:center;margin:18px 0 22px">
+    <div style="position:relative;width:170px;height:170px">
+      <svg width="170" height="170" style="transform:rotate(-90deg);display:block">
+        <circle cx="85" cy="85" r="${r}" fill="none" stroke="#E8E5DB" stroke-width="14"/>
+        <circle cx="85" cy="85" r="${r}" fill="none" stroke="#D85A30" stroke-width="14"
+          stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${o}" style="transition:stroke-dashoffset .7s ease"/>
+      </svg>
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <span style="font-size:44px;font-weight:700;line-height:1;color:var(--text)">${pct}%</span>
+        <span style="font-size:12px;font-weight:500;color:var(--text3);margin-top:5px">${sub}</span>
+      </div>
+    </div>
+  </div>`;
+}
+function rToday(){
+  const t=T(),dl=logs[t]||{},all=H(),done=all.filter(h=>dl[h.id]?.done).length,pct=Math.round(done/all.length*100);
+  const dlbl=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+  let html=`<div style="text-align:center;padding-top:6px">
+    <div style="font-size:11px;font-weight:500;letter-spacing:1.4px;text-transform:uppercase;color:var(--text3);margin-bottom:8px">${dlbl}</div>
+    <h1 style="font-size:26px;font-weight:700">Hi Paulina, let's make it today! 🌿</h1>
+  </div>${ring(pct,`${done} of ${all.length} done`)}`;
+  all.forEach(h=>{
+    const e=dl[h.id]||{},dn=!!e.done,s=gStreak(h.id);
+    html+=`<div class="hr${dn?' dn':''}">
+      <div class="chk${dn?' on':''}" onclick="tgT('${h.id}')">${dn?'✓':''}</div>
+      <span style="font-size:20px;flex-shrink:0">${h.icon}</span>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:14px;font-weight:500;color:var(--text);${dn?'text-decoration:line-through;opacity:.5':''}">${h.name}</div>
+        <div style="font-size:12px;font-weight:400;color:var(--text3)">${h.bool?'tap to toggle':`target: ${goals[h.id]} ${h.unit}`}</div>
+      </div>
+      ${s>0?`<span class="bdg">🔥${s}</span>`:''}
+      ${!h.bool?`<input class="sm" type="number" placeholder="${goals[h.id]}" value="${e.value??''}"
+        onchange="setV('${t}','${h.id}',this.value)" onclick="event.stopPropagation()" style="width:62px;text-align:center">
+        <span style="font-size:12px;font-weight:500;color:var(--text3);min-width:30px">${h.unit}</span>`
+      :`<span style="font-size:24px">${dn?'✅':'⬜'}</span>`}
+    </div>`;
+  });
+  document.getElementById('v-today').innerHTML=html;
+}
+function tgT(hid){tog(T(),hid);rToday();}
+
+/* ── WEEK ── */
+function rWeek(){
+  const wdays=weekOf(),dn=['M','T','W','T','F','S','S'],t=T(),all=H();
+  let html=`<h2 style="margin-bottom:4px">This Week</h2>
+    <div style="font-size:13px;font-weight:400;color:var(--text3);margin-bottom:14px">Goal: at least <b style="color:var(--text);font-weight:600">${WEEK_GOAL}×</b> per habit this week</div>
+    <div class="wg" style="margin-bottom:8px"><div></div>
+    ${wdays.map((d,i)=>{
+      const isT=d===t;const[y,mo,dy]=d.split('-').map(Number);
+      return`<div style="text-align:center">
+        <div style="font-size:10px;font-weight:500;color:${isT?'var(--accent)':'var(--text3)'};margin-bottom:2px">${dn[i]}</div>
+        <div style="width:24px;height:24px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:${isT?700:400};background:${isT?'var(--accent)':'transparent'};color:${isT?'white':'var(--text)'}">
+          ${new Date(y,mo-1,dy).getDate()}</div>
+      </div>`;}).join('')}</div>`;
+  all.forEach(h=>{
+    html+=`<div class="wg"><span style="font-size:15px;text-align:center">${h.icon}</span>
+    ${wdays.map(d=>{
+      const ok=!!logs[d]?.[h.id]?.done,fut=d>t;
+      return`<div class="wc" onclick="tgW('${d}','${h.id}')"
+        style="background:${ok?h.c:'var(--bg3)'};opacity:${fut?.3:1};cursor:${fut?'default':'pointer'};color:${ok?'white':'transparent'}">${ok?'✓':''}</div>`;
+    }).join('')}</div>`;
+  });
+  html+=`<div class="card" style="margin-top:14px"><div class="ctit">Progress toward ${WEEK_GOAL}× goal</div>`;
+  const totalDone=all.reduce((s,h)=>s+wdays.filter(d=>d<=t&&!!logs[d]?.[h.id]?.done).length,0);
+  const totalPossible=all.length*WEEK_GOAL;
+  const overallPct=Math.round(totalDone/totalPossible*100);
+  html+=`<div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:14px">
+    <div style="font-size:32px;font-weight:700;color:var(--accent);min-width:60px">${totalDone}<span style="font-size:16px;color:var(--text3);font-weight:400">/${totalPossible}</span></div>
+    <div style="flex:1"><div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:5px">total completions this week</div>${pb(overallPct,'#D85A30')}</div>
+  </div>`;
+  all.forEach(h=>{
+    const n=wdays.filter(d=>d<=t&&!!logs[d]?.[h.id]?.done).length;
+    const left=Math.max(0,WEEK_GOAL-n),pct=Math.round(n/WEEK_GOAL*100);
+    const col=n>=WEEK_GOAL?'#639922':n>=3?'#EF9F27':'#D85A30';
+    html+=`<div style="margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <span style="font-size:13px;font-weight:500;color:var(--text)">${h.icon} ${h.name}</span>
+        <span style="font-size:13px;font-weight:500;color:${col}">${n}/${WEEK_GOAL}${n>=WEEK_GOAL?' ✓':left>0?` · ${left} left`:''}</span>
+      </div>${pb(pct,col)}</div>`;
+  });
+  html+=`</div>`;
+  document.getElementById('v-week').innerHTML=html;
+}
+function tgW(date,hid){if(date>T())return;tog(date,hid);rWeek();}
+
+/* ── MONTH ── */
+function rMonth(){
+  const{y,m}=calDate,days=mDays(y,m),t=T(),all=H();
+  const mLbl=new Date(y,m).toLocaleDateString('en-US',{month:'long',year:'numeric'});
+  const sc=s=>{if(!s)return'var(--bg3)';if(s<.3)return'#F5C9A0';if(s<.6)return'#E89A68';if(s<.85)return'#D47A50';return'#B85C2A';};
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+    <button onclick="mvM(-1)" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);padding:4px 12px;font-family:'Inter',sans-serif">‹</button>
+    <h2 style="font-size:20px">${mLbl}</h2>
+    <button onclick="mvM(1)" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);padding:4px 12px;font-family:'Inter',sans-serif">›</button>
+  </div>
+  <div class="cg">${['M','T','W','T','F','S','S'].map(l=>`<div style="text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:2px 0">${l}</div>`).join('')}
+  ${days.map(({date,own})=>{
+    const s=dScore(date),isT=date===t,fut=date>t,isSel=selDay===date;
+    const bg=own&&!fut?sc(s):'var(--bg2)';const tc=s>.5&&own&&!fut?'white':'var(--text)';
+    const n=all.filter(h=>logs[date]?.[h.id]?.done).length;
+    const[dy,dm,dd]=date.split('-').map(Number);
+    const clk=own&&!fut?`onclick="selD('${date}')" style="cursor:pointer;`:'style="cursor:default;';
+    return`<div class="cd" ${clk}background:${bg};opacity:${own?1:.3};border:${isT?'2px solid var(--text)':isSel?'2px solid var(--accent)':'1px solid transparent'}">
+      <span style="color:${tc};font-weight:${isT?700:400};font-size:12px">${new Date(dy,dm-1,dd).getDate()}</span>
+      ${n>0&&own&&!fut?`<span style="font-size:9px;font-weight:500;color:${s>.5?'rgba(255,255,255,.85)':'var(--text3)'}">${n}/${all.length}</span>`:''}
+    </div>`;
+  }).join('')}</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:5px;margin-top:8px">
+    <span style="font-size:10px;font-weight:500;color:var(--text3)">less</span>
+    ${['var(--bg3)','#F5C9A0','#E89A68','#D47A50','#B85C2A'].map(c=>`<div style="width:18px;height:8px;border-radius:2px;background:${c}"></div>`).join('')}
+    <span style="font-size:10px;font-weight:500;color:var(--text3)">more</span>
+  </div>`;
+  if(selDay){
+    const[sy,sm,sd]=selDay.split('-').map(Number);
+    html+=`<div class="card" style="margin-top:12px">
+      <div class="ctit">${new Date(sy,sm-1,sd).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        ${all.map(h=>{const e=logs[selDay]?.[h.id];return`<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;background:${e?.done?'var(--bg2)':'var(--bg)'};border:.5px solid var(--border);border-radius:var(--radius-sm)">
+          <span style="font-size:16px">${h.icon}</span>
+          <span style="font-size:12px;font-weight:${e?.done?500:400};flex:1;color:${e?.done?'var(--text)':'var(--text3)'}">${h.name}</span>
+          <span style="font-size:14px">${e?.done?'✓':'·'}</span>
+        </div>`;}).join('')}
+      </div></div>`;
+  }
+  document.getElementById('v-month').innerHTML=html;
+}
+function mvM(dir){const d=new Date(calDate.y,calDate.m+dir);calDate={y:d.getFullYear(),m:d.getMonth()};selDay=null;rMonth();}
+function selD(date){selDay=selDay===date?null:date;rMonth();}
+
+/* ── TRENDS ── */
+const PERIODS=[{l:'7 days',d:7},{l:'30 days',d:30},{l:'90 days',d:90},{l:'6 months',d:180}];
+function setTrend(d){trendDays=d;rTrends();}
+function rTrends(){
+  const t=T(),lN=lastN(trendDays),all=H();
+  const prev=Array.from({length:trendDays},(_,i)=>addD(t,-(trendDays*2-1-i)));
+  const avgN=Math.round(lN.reduce((s,d)=>s+dScore(d),0)/trendDays*100);
+  const avgP=Math.round(prev.reduce((s,d)=>s+dScore(d),0)/trendDays*100);
+  const{g,c:gc}=gGrade(avgN);const delta=avgN-avgP;
+  const cData=all.map(h=>({...h,pct:gCons(h.id,trendDays)})).sort((a,b)=>b.pct-a.pct);
+  const pairs=[];
+  all.forEach((h1,i)=>all.forEach((h2,j)=>{
+    if(j<=i)return;const h1d=lN.filter(d=>logs[d]?.[h1.id]?.done);if(h1d.length<3)return;
+    const both=h1d.filter(d=>logs[d]?.[h2.id]?.done).length,r=Math.round(both/h1d.length*100);
+    if(r>=65)pairs.push({h1,h2,r});
+  }));
+  pairs.sort((a,b)=>b.r-a.r);
+  const ins=[];
+  if(cData[0]?.pct>0)ins.push(`${cData[0].icon} <b>${cData[0].name}</b> is your strongest habit at <b>${cData[0].pct}%</b> consistency.`);
+  const worst=cData[cData.length-1];
+  if(worst?.pct<60)ins.push(`${worst.icon} <b>${worst.name}</b> needs attention — only <b>${worst.pct}%</b> consistency.`);
+  if(delta>5)ins.push(`You improved <b>${delta}%</b> vs the previous ${trendDays}-day period! 🚀`);
+  else if(delta<-5)ins.push(`You dipped <b>${Math.abs(delta)}%</b> vs the previous period. Time to refocus.`);
+  const top=all.map(h=>({...h,s:gStreak(h.id)})).filter(h=>h.s>2).sort((a,b)=>b.s-a.s)[0];
+  if(top)ins.push(`${top.icon} <b>${top.name}</b> is on a <b>${top.s}-day streak</b>! 🔥`);
+  if(!ins.length)ins.push('Start checking off habits to see your personalized insights here. 🌱');
+
+  document.getElementById('v-trends').innerHTML=`
+    <h2 style="margin-bottom:12px">Trends</h2>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:16px">
+      ${PERIODS.map(p=>`<button class="fbtn${trendDays===p.d?' on':''}" onclick="setTrend(${p.d})">${p.l}</button>`).join('')}
+    </div>
+    <div class="g2">
+      <div class="mc"><div class="ml">${trendDays}-day grade</div><div class="mv" style="color:${gc}">${g}</div><div class="ms">${avgN}% avg</div></div>
+      <div class="mc"><div class="ml">vs prev. period</div><div class="mv" style="color:${delta>=0?'#639922':'#D85A30'}">${delta>=0?'↑':'↓'}</div><div class="ms">${Math.abs(delta)}% diff.</div></div>
+    </div>
+    <div class="card"><div class="ctit">Daily score · last ${trendDays} days</div>
+      <div style="position:relative;height:150px"><canvas id="sc"></canvas></div>
+    </div>
+    <div class="card"><div class="ctit">Habit consistency · ${trendDays} days</div>
+      ${cData.map(h=>`<div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+          <span style="font-size:13px;font-weight:500;color:var(--text)">${h.icon} ${h.name}</span>
+          <span style="font-size:13px;font-weight:500;color:${h.pct>=70?'#639922':h.pct>=40?'#EF9F27':'#D85A30'}">${h.pct}%</span>
+        </div>${pb(h.pct,h.c)}</div>`).join('')}
+    </div>
+    <div class="card"><div class="ctit">⚠️ Needs attention</div>
+      ${[...cData].reverse().slice(0,3).map((h,i)=>`
+        <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:7px">
+          <span style="font-size:14px;font-weight:700;color:var(--accent);min-width:22px">#${i+1}</span>
+          <span style="font-size:17px">${h.icon}</span>
+          <div><div style="font-size:13px;font-weight:600;color:var(--text)">${h.name}</div>
+          <div style="font-size:12px;font-weight:400;color:var(--text3)">${h.pct}% consistency</div></div>
+        </div>`).join('')}
+    </div>
+    ${pairs.length?`<div class="card"><div class="ctit">🔗 Habits that sync up</div>
+      ${pairs.slice(0,4).map(p=>`<div class="ins">${p.h1.icon} <b>${p.h1.name}</b> + ${p.h2.icon} <b>${p.h2.name}</b> happen together <b style="color:var(--accent)">${p.r}%</b> of the time</div>`).join('')}
+    </div>`:''}
+    <div class="card"><div class="ctit">💡 Key insights</div>
+      ${ins.map(tx=>`<div class="ins">${tx}</div>`).join('')}
+    </div>`;
+
+  setTimeout(()=>{
+    const ctx=document.getElementById('sc')?.getContext('2d');if(!ctx)return;
+    if(scoreChart){scoreChart.destroy();scoreChart=null;}
+    const data=lN.map(d=>Math.round(dScore(d)*100));
+    const skip=trendDays<=30?7:trendDays<=90?14:30;
+    const labels=lN.map((d,i)=>{
+      if(i===0||i%skip===0){const[y,m,dy]=d.split('-').map(Number);return new Date(y,m-1,dy).toLocaleDateString('en-US',{day:'numeric',month:'short'});}return'';
+    });
+    scoreChart=new Chart(ctx,{
+      type:'line',data:{labels,datasets:[{data,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.10)',fill:true,tension:.4,pointRadius:0,borderWidth:2.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{ticks:{font:{size:10,family:'Inter'},color:'#888780'},grid:{display:false}},
+          y:{min:0,max:100,ticks:{font:{size:10,family:'Inter'},color:'#888780',callback:v=>v+'%'},grid:{color:'rgba(0,0,0,0.05)'}}}}
+    });
+  },100);
+}
+
+/* ── GOALS ── */
+function rGoals(){
+  const all=H();
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+    <h2>My goals</h2>
+    <button class="sbtn2" onclick="openModal()">+ New habit</button>
+  </div>
+  <div style="font-size:13px;font-weight:400;color:var(--text3);margin-bottom:16px">Set daily targets · add custom habits</div>`;
+
+  /* built-in numeric */
+  html+=`<div class="card"><div class="ctit">Daily targets</div>`;
+  all.filter(h=>!h.bool).forEach(h=>{
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
+      <span style="font-size:20px">${h.icon}</span>
+      <div style="flex:1">
+        <div style="font-size:14px;font-weight:500;color:var(--text)">${h.name}</div>
+        <div style="font-size:12px;font-weight:400;color:var(--text3)">${h.unit}</div>
+      </div>
+      <input class="sm" type="number" id="g_${h.id}" value="${goals[h.id]}" min="0" style="width:74px;text-align:center">
+      ${h.custom?`<button class="del-btn" onclick="deleteHabit('${h.id}')" title="Remove">🗑</button>`:'<span style="width:24px"></span>'}
+    </div>`;
+  });
+  html+=`</div>`;
+
+  /* built-in bool */
+  html+=`<div class="card"><div class="ctit">Yes / No habits</div>`;
+  all.filter(h=>h.bool).forEach(h=>{
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
+      <span style="font-size:20px">${h.icon}</span>
+      <span style="font-size:14px;font-weight:400;color:var(--text);flex:1">${h.name}</span>
+      <span style="font-size:12px;font-weight:500;color:var(--text3)">yes / no</span>
+      ${h.custom?`<button class="del-btn" onclick="deleteHabit('${h.id}')" title="Remove">🗑</button>`:'<span style="width:24px"></span>'}
+    </div>`;
+  });
+  html+=`</div>`;
+
+  html+=`<div class="card" style="margin-bottom:12px">
+    <div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px">Weekly frequency goal</div>
+    <div style="font-size:12px;font-weight:400;color:var(--text3);margin-bottom:10px">Applied to all habits</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <span style="font-size:22px">🎯</span>
+      <span style="font-size:14px;font-weight:500;color:var(--text);flex:1">At least ${WEEK_GOAL}× per week</span>
+      <span style="font-size:12px;font-weight:500;background:#E1F5EE;color:#0F6E56;padding:3px 10px;border-radius:20px">active</span>
+    </div>
+  </div>
+  <button class="sbtn" onclick="saveGoals()">Save targets</button>
+  <div id="gsaved" style="text-align:center;font-size:13px;font-weight:500;color:#639922;margin-top:10px;opacity:0;transition:opacity .4s"></div>`;
+
+  document.getElementById('v-goals').innerHTML=html;
+}
+function saveGoals(){
+  H().filter(h=>!h.bool).forEach(h=>{const el=document.getElementById('g_'+h.id);if(el)goals[h.id]=+el.value;});
+  save();
+  const el=document.getElementById('gsaved');if(el){el.textContent='Targets saved! ✓';el.style.opacity=1;setTimeout(()=>el.style.opacity=0,2500);}
+}
+
+load();rNav();rToday();
+</script>
+</body>
+</html>
