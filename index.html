@@ -13,7 +13,6 @@
   --text:#2C2C2A;--text2:#5F5E5A;--text3:#888780;
   --border:rgba(44,44,42,0.12);--border2:rgba(44,44,42,0.22);
   --accent:#D85A30;--accent2:#B85C2A;
-  --green:#639922;--amber:#EF9F27;--red:#D85A30;
   --radius:12px;--radius-sm:8px;
 }
 body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding-bottom:88px;font-size:15px;font-weight:400;line-height:1.5}
@@ -50,7 +49,6 @@ h3{font-size:20px;font-weight:600;color:var(--text);line-height:1.3}
 input[type=text],input[type=number],input[type=date]{background:var(--bg2);border:0.5px solid var(--border2);border-radius:6px;padding:9px 11px;font-family:'Inter',sans-serif;color:var(--text);font-size:14px;font-weight:400;outline:none;width:100%}
 input[type=text]:focus,input[type=number]:focus,input[type=date]:focus{border-color:var(--accent);background:#fff}
 input.sm{padding:5px 7px;font-size:13px;font-weight:500;width:auto}
-input.name-edit{padding:5px 8px;font-size:13px;font-weight:500;border-radius:6px;width:auto;flex:1}
 .sbtn{width:100%;padding:14px;background:var(--accent);color:white;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;margin-top:6px;transition:background .2s}
 .sbtn:hover{background:var(--accent2)}
 .sbtn2{padding:10px 18px;background:var(--bg2);color:var(--text);border:0.5px solid var(--border2);border-radius:var(--radius);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;transition:all .2s}
@@ -70,8 +68,7 @@ input.name-edit{padding:5px 8px;font-size:13px;font-weight:500;border-radius:6px
 .modal-hidden{display:none}
 .lbl{font-size:12px;font-weight:500;color:var(--text2);margin-bottom:5px;display:block}
 .frow{margin-bottom:14px}
-.week-row{display:flex;align-items:center;padding:8px 10px;border-radius:var(--radius-sm);margin-bottom:5px;gap:10px}
-.wbadge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+.week-row{border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:8px;border:0.5px solid var(--border)}
 </style>
 </head>
 <body>
@@ -84,7 +81,6 @@ input.name-edit{padding:5px 8px;font-size:13px;font-weight:500;border-radius:6px
   <div id="v-goals" class="view"></div>
 </div>
 
-<!-- Add Habit Modal -->
 <div id="modal" class="modal-overlay modal-hidden" onclick="closeModal(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
@@ -110,7 +106,7 @@ input.name-edit{padding:5px 8px;font-size:13px;font-weight:500;border-radius:6px
     </div>
     <div class="frow">
       <span class="lbl">Color</span>
-      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px">
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:2px" id="color-picker">
         ${['#378ADD','#7F77DD','#D85A30','#639922','#EF9F27','#D4537E','#1D9E75','#BA7517','#E24B4A','#5B8DEF','#A855F7','#14B8A6'].map((c,i)=>
           `<div class="clr-dot${i===0?' on':''}" style="background:${c}" data-c="${c}" onclick="pickColor(this)"></div>`
         ).join('')}
@@ -141,19 +137,14 @@ let calDate={y:new Date().getFullYear(),m:new Date().getMonth()};
 let selDay=null,curTab='today',scoreChart=null;
 let newType='bool',newColor='#378ADD';
 
-function H(){
-  return[...BASE_H,...customH].map(h=>({...h,name:habitNames[h.id]||h.name}));
-}
+function H(){return[...BASE_H,...customH].map(h=>({...h,name:habitNames[h.id]||h.name}));}
 
 /* ── STORAGE ── */
-function save(){
-  try{localStorage.setItem('ht_v7',JSON.stringify({logs,goals,customH,habitNames}));}catch(e){}
-}
+function save(){try{localStorage.setItem('ht_v7',JSON.stringify({logs,goals,customH,habitNames}));}catch(e){}}
 function load(){
   try{
     const r=localStorage.getItem('ht_v7');
     if(r){const d=JSON.parse(r);if(d.logs)logs=d.logs;if(d.goals)goals=d.goals;if(d.customH)customH=d.customH;if(d.habitNames)habitNames=d.habitNames;}
-    /* migrate from old key */
     if(!Object.keys(logs).length){
       const old=localStorage.getItem('ht_v6');
       if(old){const d=JSON.parse(old);if(d.logs)logs=d.logs;if(d.goals)goals=d.goals;if(d.customH)customH=d.customH;}
@@ -162,37 +153,33 @@ function load(){
   H().forEach(h=>{if(goals[h.id]==null)goals[h.id]=h.def;});
 }
 
-/* ── DATE HELPERS ── */
+/* ── DATE HELPERS — all Safari-safe ── */
 function ds(d){return[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-');}
 function T(){return ds(new Date());}
-function addD(s,n){const[y,m,d]=s.split('-').map(Number);return ds(new Date(y,m-1,d+n));}
-function dRange(from,to){
-  const days=[];let d=from;
-  while(d<=to){days.push(d);d=addD(d,1);}
-  return days;
-}
+function parseD(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function addD(s,n){const p=parseD(s);p.setDate(p.getDate()+n);return ds(p);}
+function dRange(from,to){const days=[];let d=from;while(d<=to){days.push(d);d=addD(d,1);}return days;}
 function lastN(n){const t=T();return Array.from({length:n},(_,i)=>addD(t,-(n-1-i)));}
 function weekOf(ref){
-  const[y,m,d]=(ref||T()).split('-').map(Number);const dt=new Date(y,m-1,d);
+  const dt=parseD(ref||T());
   const off=dt.getDay()===0?-6:1-dt.getDay();
-  return Array.from({length:7},(_,i)=>ds(new Date(y,m-1,d+off+i)));
+  return Array.from({length:7},(_,i)=>ds(new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()+off+i)));
 }
 function mDays(y,m){
   const f=new Date(y,m,1),l=new Date(y,m+1,0);
   const pad=f.getDay()===0?6:f.getDay()-1,days=[];
-  for(let i=pad;i>0;i--)days.push({date:ds(new Date(y,m,1-i)),own:false});
-  for(let i=1;i<=l.getDate();i++)days.push({date:ds(new Date(y,m,i)),own:true});
-  const rem=7-(days.length%7);if(rem<7)for(let i=1;i<=rem;i++)days.push({date:ds(new Date(y,m+1,i)),own:false});
-  return days;
+  for(let i=pad;i>0;i--)days.push(ds(new Date(y,m,1-i)));
+  for(let i=1;i<=l.getDate();i++)days.push(ds(new Date(y,m,i)));
+  const rem=7-(days.length%7);if(rem<7)for(let i=1;i<=rem;i++)days.push(ds(new Date(y,m+1,i)));
+  return days.map((date,_,arr)=>({date,own:arr.indexOf(date)>=pad&&arr.indexOf(date)<pad+l.getDate()}));
 }
 
-/* Split an array of dates into Mon-Sun weeks */
+/* Split date array into Mon–Sun weeks */
 function splitWeeks(days){
   if(!days.length)return[];
-  const weeks=[];
-  let week=[];
+  const weeks=[];let week=[];
   days.forEach(d=>{
-    const dt=new Date(d.split('-').map(Number).map((v,i)=>i===1?v-1:v));
+    const dt=parseD(d);
     const dow=dt.getDay()===0?7:dt.getDay();
     week.push(d);
     if(dow===7){weeks.push(week);week=[];}
@@ -201,7 +188,6 @@ function splitWeeks(days){
   return weeks;
 }
 
-/* Get the active trend date array */
 function getTrendDays(){
   if(trendMode==='custom'&&trendFrom&&trendTo&&trendFrom<=trendTo){
     return dRange(trendFrom,trendTo<=T()?trendTo:T());
@@ -212,96 +198,65 @@ function getTrendDays(){
 function dScore(date){const dl=logs[date]||{};const all=H();return all.filter(h=>dl[h.id]?.done).length/all.length;}
 function gStreak(hid){let n=0,d=T();while(logs[d]?.[hid]?.done){n++;d=addD(d,-1);}return n;}
 
-/* Weekly-based consistency: % of complete weeks where habit hit WEEK_GOAL days */
-function gWeeklyCons(hid,days){
+/* Average days per week, as % of WEEK_GOAL — gives partial credit */
+function gWeeklyStats(hid,days){
   const weeks=splitWeeks(days);
   const t=T();
-  const complete=weeks.filter(w=>w[w.length-1]<=t);
-  if(!complete.length)return null;
-  const met=complete.filter(w=>w.filter(d=>logs[d]?.[hid]?.done).length>=WEEK_GOAL).length;
-  return{met,total:complete.length,pct:Math.round(met/complete.length*100)};
+  const past=weeks.filter(w=>w.some(d=>d<=t));
+  if(!past.length)return null;
+  const perWeek=past.map(w=>w.filter(d=>d<=t&&logs[d]?.[hid]?.done).length);
+  const avg=perWeek.reduce((a,b)=>a+b,0)/past.length;
+  const pct=Math.round(Math.min(avg/WEEK_GOAL*100,100));
+  const metWeeks=perWeek.filter(n=>n>=WEEK_GOAL).length;
+  return{avg:+avg.toFixed(1),pct,metWeeks,total:past.length,perWeek};
 }
-
-/* Daily consistency (kept for chart) */
-function gCons(hid,days){return Math.round(days.filter(d=>d<=T()&&logs[d]?.[hid]?.done).length/Math.max(days.filter(d=>d<=T()).length,1)*100);}
 
 function gGrade(p){if(p>=90)return{g:'A',c:'#639922'};if(p>=75)return{g:'B',c:'#EF9F27'};if(p>=60)return{g:'C',c:'#D85A30'};if(p>=40)return{g:'D',c:'#993C1D'};return{g:'F',c:'#A32D2D'};}
-function pb(p,c){return`<div class="pb"><div class="pf" style="width:${Math.min(p,100)}%;background:${c}"></div></div>`;}
+function pb(p,c,h){h=h||6;return`<div class="pb" style="height:${h}px"><div class="pf" style="width:${Math.min(p,100)}%;background:${c}"></div></div>`;}
 
-function tog(date,hid){
-  if(!logs[date])logs[date]={};if(!logs[date][hid])logs[date][hid]={};
-  logs[date][hid].done=!logs[date][hid].done;save();
-}
-function setV(date,hid,v){
-  if(!logs[date])logs[date]={};if(!logs[date][hid])logs[date][hid]={};
-  logs[date][hid].value=v===''?null:+v;save();
-}
+function tog(date,hid){if(!logs[date])logs[date]={};if(!logs[date][hid])logs[date][hid]={};logs[date][hid].done=!logs[date][hid].done;save();}
+function setV(date,hid,v){if(!logs[date])logs[date]={};if(!logs[date][hid])logs[date][hid]={};logs[date][hid].value=v===''?null:+v;save();}
 
 /* ── NAV ── */
 const TABS=[{id:'today',icon:'☀️',label:'Today'},{id:'week',icon:'📅',label:'Week'},{id:'month',icon:'🗓️',label:'Month'},{id:'trends',icon:'📊',label:'Trends'},{id:'goals',icon:'🎯',label:'Goals'}];
 function rNav(){
-  document.getElementById('nav').innerHTML=TABS.map(t=>`
-    <button class="nb${curTab===t.id?' on':''}" onclick="go('${t.id}')">
-      <span style="font-size:18px">${t.icon}</span><span>${t.label}</span><span class="nbar"></span>
-    </button>`).join('');
+  document.getElementById('nav').innerHTML=TABS.map(t=>`<button class="nb${curTab===t.id?' on':''}" onclick="go('${t.id}')"><span style="font-size:18px">${t.icon}</span><span>${t.label}</span><span class="nbar"></span></button>`).join('');
 }
-function go(id){
-  document.getElementById('v-'+curTab).classList.remove('on');curTab=id;
-  document.getElementById('v-'+id).classList.add('on');rNav();
-  ({today:rToday,week:rWeek,month:rMonth,trends:rTrends,goals:rGoals})[id]();
-}
+function go(id){document.getElementById('v-'+curTab).classList.remove('on');curTab=id;document.getElementById('v-'+id).classList.add('on');rNav();({today:rToday,week:rWeek,month:rMonth,trends:rTrends,goals:rGoals})[id]();}
 
 /* ── MODAL ── */
 function openModal(){document.getElementById('modal').classList.remove('modal-hidden');document.getElementById('new-name').focus();}
-function closeModal(e){
-  if(e&&e.target!==document.getElementById('modal'))return;
-  document.getElementById('modal').classList.add('modal-hidden');
-  document.getElementById('modal-err').textContent='';
-}
-function setType(t){
-  newType=t;
-  document.getElementById('tbtn-bool').classList.toggle('on',t==='bool');
-  document.getElementById('tbtn-num').classList.toggle('on',t==='num');
-  document.getElementById('num-fields').style.display=t==='num'?'block':'none';
-}
+function closeModal(e){if(e&&e.target!==document.getElementById('modal'))return;document.getElementById('modal').classList.add('modal-hidden');document.getElementById('modal-err').textContent='';}
+function setType(t){newType=t;document.getElementById('tbtn-bool').classList.toggle('on',t==='bool');document.getElementById('tbtn-num').classList.toggle('on',t==='num');document.getElementById('num-fields').style.display=t==='num'?'block':'none';}
 function pickColor(el){document.querySelectorAll('.clr-dot').forEach(d=>d.classList.remove('on'));el.classList.add('on');newColor=el.dataset.c;}
 function addHabit(){
   const name=document.getElementById('new-name').value.trim();
   const icon=document.getElementById('new-icon').value.trim()||'⭐';
   if(!name){document.getElementById('modal-err').textContent='Please enter a habit name.';return;}
-  const id='custom_'+Date.now();
-  const isBool=newType==='bool';
+  const id='custom_'+Date.now();const isBool=newType==='bool';
   const unit=isBool?'':(document.getElementById('new-unit').value.trim()||'');
   const def=isBool?1:(+document.getElementById('new-def').value||1);
   const h={id,name,icon,unit,def,c:newColor,bool:isBool,custom:true};
   customH.push(h);goals[h.id]=h.def;save();
   document.getElementById('modal').classList.add('modal-hidden');
-  document.getElementById('new-name').value='';
-  document.getElementById('new-icon').value='⭐';
-  document.getElementById('modal-err').textContent='';
+  document.getElementById('new-name').value='';document.getElementById('new-icon').value='⭐';document.getElementById('modal-err').textContent='';
   rGoals();
 }
-function deleteHabit(id){
-  if(!confirm('Remove this habit? Your past logs will be kept.'))return;
-  customH=customH.filter(h=>h.id!==id);save();rGoals();
-}
+function deleteHabit(id){if(!confirm('Remove this habit? Past logs kept.'))return;customH=customH.filter(h=>h.id!==id);save();rGoals();}
 
 /* ── TODAY ── */
 function ring(pct,sub){
   const r=72,c=2*Math.PI*r,o=(c*(1-pct/100)).toFixed(1);
-  return`<div style="display:flex;justify-content:center;margin:18px 0 22px">
-    <div style="position:relative;width:170px;height:170px">
-      <svg width="170" height="170" style="transform:rotate(-90deg);display:block">
-        <circle cx="85" cy="85" r="${r}" fill="none" stroke="#E8E5DB" stroke-width="14"/>
-        <circle cx="85" cy="85" r="${r}" fill="none" stroke="#D85A30" stroke-width="14"
-          stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${o}" style="transition:stroke-dashoffset .7s ease"/>
-      </svg>
-      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-        <span style="font-size:44px;font-weight:700;line-height:1;color:var(--text)">${pct}%</span>
-        <span style="font-size:12px;font-weight:500;color:var(--text3);margin-top:5px">${sub}</span>
-      </div>
+  return`<div style="display:flex;justify-content:center;margin:18px 0 22px"><div style="position:relative;width:170px;height:170px">
+    <svg width="170" height="170" style="transform:rotate(-90deg);display:block">
+      <circle cx="85" cy="85" r="${r}" fill="none" stroke="#E8E5DB" stroke-width="14"/>
+      <circle cx="85" cy="85" r="${r}" fill="none" stroke="#D85A30" stroke-width="14" stroke-linecap="round" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${o}" style="transition:stroke-dashoffset .7s ease"/>
+    </svg>
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+      <span style="font-size:44px;font-weight:700;line-height:1;color:var(--text)">${pct}%</span>
+      <span style="font-size:12px;font-weight:500;color:var(--text3);margin-top:5px">${sub}</span>
     </div>
-  </div>`;
+  </div></div>`;
 }
 function rToday(){
   const t=T(),dl=logs[t]||{},all=H(),done=all.filter(h=>dl[h.id]?.done).length,pct=Math.round(done/all.length*100);
@@ -320,10 +275,7 @@ function rToday(){
         <div style="font-size:12px;font-weight:400;color:var(--text3)">${h.bool?'tap to toggle':`target: ${goals[h.id]} ${h.unit}`}</div>
       </div>
       ${s>0?`<span class="bdg">🔥${s}</span>`:''}
-      ${!h.bool?`<input class="sm" type="number" placeholder="${goals[h.id]}" value="${e.value??''}"
-        onchange="setV('${t}','${h.id}',this.value)" onclick="event.stopPropagation()" style="width:62px;text-align:center">
-        <span style="font-size:12px;font-weight:500;color:var(--text3);min-width:30px">${h.unit}</span>`
-      :`<span style="font-size:24px">${dn?'✅':'⬜'}</span>`}
+      ${!h.bool?`<input class="sm" type="number" placeholder="${goals[h.id]}" value="${e.value??''}" onchange="setV('${t}','${h.id}',this.value)" onclick="event.stopPropagation()" style="width:62px;text-align:center"><span style="font-size:12px;font-weight:500;color:var(--text3);min-width:30px">${h.unit}</span>`:`<span style="font-size:24px">${dn?'✅':'⬜'}</span>`}
     </div>`;
   });
   document.getElementById('v-today').innerHTML=html;
@@ -332,32 +284,29 @@ function tgT(hid){tog(T(),hid);rToday();}
 
 /* ── WEEK ── */
 function rWeek(){
-  const wdays=weekOf(),dn=['M','T','W','T','F','S','S'],t=T(),all=H();
+  const wdays=weekOf(),dn=['L','M','X','J','V','S','D'],t=T(),all=H();
   let html=`<h2 style="margin-bottom:4px">This Week</h2>
     <div style="font-size:13px;font-weight:400;color:var(--text3);margin-bottom:14px">Goal: at least <b style="color:var(--text);font-weight:600">${WEEK_GOAL}×</b> per habit this week</div>
     <div class="wg" style="margin-bottom:8px"><div></div>
     ${wdays.map((d,i)=>{
-      const isT=d===t;const[y,mo,dy]=d.split('-').map(Number);
+      const isT=d===t;const dt=parseD(d);
       return`<div style="text-align:center">
         <div style="font-size:10px;font-weight:500;color:${isT?'var(--accent)':'var(--text3)'};margin-bottom:2px">${dn[i]}</div>
         <div style="width:24px;height:24px;border-radius:50%;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:${isT?700:400};background:${isT?'var(--accent)':'transparent'};color:${isT?'white':'var(--text)'}">
-          ${new Date(y,mo-1,dy).getDate()}</div>
+          ${dt.getDate()}</div>
       </div>`;}).join('')}</div>`;
   all.forEach(h=>{
     html+=`<div class="wg"><span style="font-size:15px;text-align:center">${h.icon}</span>
-    ${wdays.map(d=>{
-      const ok=!!logs[d]?.[h.id]?.done,fut=d>t;
-      return`<div class="wc" onclick="tgW('${d}','${h.id}')"
-        style="background:${ok?h.c:'var(--bg3)'};opacity:${fut?.3:1};cursor:${fut?'default':'pointer'};color:${ok?'white':'transparent'}">${ok?'✓':''}</div>`;
+    ${wdays.map(d=>{const ok=!!logs[d]?.[h.id]?.done,fut=d>t;
+      return`<div class="wc" onclick="tgW('${d}','${h.id}')" style="background:${ok?h.c:'var(--bg3)'};opacity:${fut?.3:1};cursor:${fut?'default':'pointer'};color:${ok?'white':'transparent'}">${ok?'✓':''}</div>`;
     }).join('')}</div>`;
   });
   html+=`<div class="card" style="margin-top:14px"><div class="ctit">Progress toward ${WEEK_GOAL}× goal</div>`;
   const totalDone=all.reduce((s,h)=>s+wdays.filter(d=>d<=t&&!!logs[d]?.[h.id]?.done).length,0);
   const totalPossible=all.length*WEEK_GOAL;
-  const overallPct=Math.round(totalDone/totalPossible*100);
   html+=`<div style="background:var(--bg2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;gap:14px">
     <div style="font-size:32px;font-weight:700;color:var(--accent);min-width:60px">${totalDone}<span style="font-size:16px;color:var(--text3);font-weight:400">/${totalPossible}</span></div>
-    <div style="flex:1"><div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:5px">total completions this week</div>${pb(overallPct,'#D85A30')}</div>
+    <div style="flex:1"><div style="font-size:12px;font-weight:500;color:var(--text3);margin-bottom:5px">total completions this week</div>${pb(Math.round(totalDone/totalPossible*100),'#D85A30')}</div>
   </div>`;
   all.forEach(h=>{
     const n=wdays.filter(d=>d<=t&&!!logs[d]?.[h.id]?.done).length;
@@ -384,15 +333,15 @@ function rMonth(){
     <h2 style="font-size:20px">${mLbl}</h2>
     <button onclick="mvM(1)" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text2);padding:4px 12px;font-family:'Inter',sans-serif">›</button>
   </div>
-  <div class="cg">${['M','T','W','T','F','S','S'].map(l=>`<div style="text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:2px 0">${l}</div>`).join('')}
+  <div class="cg">${['L','M','X','J','V','S','D'].map(l=>`<div style="text-align:center;font-size:11px;font-weight:600;color:var(--text3);padding:2px 0">${l}</div>`).join('')}
   ${days.map(({date,own})=>{
     const s=dScore(date),isT=date===t,fut=date>t,isSel=selDay===date;
     const bg=own&&!fut?sc(s):'var(--bg2)';const tc=s>.5&&own&&!fut?'white':'var(--text)';
     const n=all.filter(h=>logs[date]?.[h.id]?.done).length;
-    const[dy,dm,dd]=date.split('-').map(Number);
+    const dt=parseD(date);
     const clk=own&&!fut?`onclick="selD('${date}')" style="cursor:pointer;`:'style="cursor:default;';
     return`<div class="cd" ${clk}background:${bg};opacity:${own?1:.3};border:${isT?'2px solid var(--text)':isSel?'2px solid var(--accent)':'1px solid transparent'}">
-      <span style="color:${tc};font-weight:${isT?700:400};font-size:12px">${new Date(dy,dm-1,dd).getDate()}</span>
+      <span style="color:${tc};font-weight:${isT?700:400};font-size:12px">${dt.getDate()}</span>
       ${n>0&&own&&!fut?`<span style="font-size:9px;font-weight:500;color:${s>.5?'rgba(255,255,255,.85)':'var(--text3)'}">${n}/${all.length}</span>`:''}
     </div>`;
   }).join('')}</div>
@@ -402,9 +351,9 @@ function rMonth(){
     <span style="font-size:10px;font-weight:500;color:var(--text3)">more</span>
   </div>`;
   if(selDay){
-    const[sy,sm,sd]=selDay.split('-').map(Number);
+    const sd=parseD(selDay);
     html+=`<div class="card" style="margin-top:12px">
-      <div class="ctit">${new Date(sy,sm-1,sd).toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
+      <div class="ctit">${sd.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
         ${all.map(h=>{const e=logs[selDay]?.[h.id];return`<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;background:${e?.done?'var(--bg2)':'var(--bg)'};border:.5px solid var(--border);border-radius:var(--radius-sm)">
           <span style="font-size:16px">${h.icon}</span>
@@ -420,9 +369,7 @@ function selD(date){selDay=selDay===date?null:date;rMonth();}
 
 /* ── TRENDS ── */
 const PERIODS=[{l:'7 days',d:7},{l:'30 days',d:30},{l:'90 days',d:90},{l:'6 months',d:180}];
-
-function setTrend(d){trendDays=d;trendMode='preset';rTrends();}
-
+function setTrend(d){trendDays=d;trendMode='preset';trendFrom=null;trendTo=null;rTrends();}
 function applyCustomRange(){
   const f=document.getElementById('tr-from')?.value;
   const to=document.getElementById('tr-to')?.value;
@@ -434,141 +381,112 @@ function applyCustomRange(){
 function rTrends(){
   const t=T(),lN=getTrendDays(),all=H();
   const pastDays=lN.filter(d=>d<=t);
-
-  /* previous period for comparison */
   const span=lN.length;
-  const prev=Array.from({length:span},(_,i)=>addD(lN[0],-(span-i)));
+  const prev=dRange(addD(lN[0],-span),addD(lN[0],-1));
   const avgN=pastDays.length?Math.round(pastDays.reduce((s,d)=>s+dScore(d),0)/pastDays.length*100):0;
   const prevPast=prev.filter(d=>d<=t);
   const avgP=prevPast.length?Math.round(prevPast.reduce((s,d)=>s+dScore(d),0)/prevPast.length*100):0;
   const delta=avgN-avgP;
   const{g,c:gc}=gGrade(avgN);
 
-  /* weekly breakdown */
   const weeks=splitWeeks(lN);
-  const completeWeeks=weeks.filter(w=>w[w.length-1]<=t);
+  const allWeeks=weeks.filter(w=>w.some(d=>d<=t));
 
-  /* per-habit weekly consistency */
   const cData=all.map(h=>{
-    const wc=gWeeklyCons(h.id,lN);
-    return{...h,wc,dailyPct:gCons(h.id,lN)};
-  }).sort((a,b)=>(b.wc?.pct??0)-(a.wc?.pct??0));
-
-  /* overall weekly score: % of weeks where ≥50% of habits hit their goal */
-  const weekScores=completeWeeks.map(w=>{
-    const met=all.filter(h=>w.filter(d=>logs[d]?.[h.id]?.done).length>=WEEK_GOAL).length;
-    return Math.round(met/all.length*100);
-  });
-  const avgWeekScore=weekScores.length?Math.round(weekScores.reduce((a,b)=>a+b,0)/weekScores.length):0;
-  const weeksGoalMet=weekScores.filter(s=>s>=70).length;
+    const st=gWeeklyStats(h.id,lN);
+    return{...h,st};
+  }).sort((a,b)=>(b.st?.pct??0)-(a.st?.pct??0));
 
   const ins=[];
   const best=cData[0];
-  if(best?.wc?.met>0)ins.push(`${best.icon} <b>${best.name}</b> hit the weekly goal in <b>${best.wc.met}/${best.wc.total} weeks</b> — strongest habit! 💪`);
+  if(best?.st&&best.st.pct>0)ins.push(`${best.icon} <b>${best.name}</b> averaged <b>${best.st.avg} days/week</b> — best habit! 💪`);
   const worst=cData[cData.length-1];
-  if(worst?.wc&&worst.wc.pct<60)ins.push(`${worst.icon} <b>${worst.name}</b> met the weekly goal in only <b>${worst.wc.met}/${worst.wc.total} weeks</b>. Room to grow.`);
-  if(delta>5)ins.push(`Overall score improved <b>${delta}%</b> vs the previous period! 🚀`);
+  if(worst?.st&&worst.st.pct<60)ins.push(`${worst.icon} <b>${worst.name}</b> averaged only <b>${worst.st.avg} days/week</b>. Room to grow.`);
+  if(delta>5)ins.push(`Score improved <b>${delta}%</b> vs the previous period! 🚀`);
   else if(delta<-5)ins.push(`Score dipped <b>${Math.abs(delta)}%</b> vs the previous period. Time to refocus.`);
-  const top=all.map(h=>({...h,s:gStreak(h.id)})).filter(h=>h.s>2).sort((a,b)=>b.s-a.s)[0];
-  if(top)ins.push(`${top.icon} <b>${top.name}</b> is on a <b>${top.s}-day streak</b>! 🔥`);
+  const topStreak=all.map(h=>({...h,s:gStreak(h.id)})).filter(h=>h.s>2).sort((a,b)=>b.s-a.s)[0];
+  if(topStreak)ins.push(`${topStreak.icon} <b>${topStreak.name}</b> on a <b>${topStreak.s}-day streak</b>! 🔥`);
   if(!ins.length)ins.push('Start logging habits to see personalized insights. 🌱');
 
   const rangeLabel=trendMode==='custom'?`${trendFrom} → ${trendTo}`:`last ${trendDays} days`;
 
   document.getElementById('v-trends').innerHTML=`
     <h2 style="margin-bottom:12px">Trends</h2>
-
-    <!-- Preset filters -->
     <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px">
       ${PERIODS.map(p=>`<button class="fbtn${trendMode==='preset'&&trendDays===p.d?' on':''}" onclick="setTrend(${p.d})">${p.l}</button>`).join('')}
-      <button class="fbtn${trendMode==='custom'?' on':''}" onclick="toggleDatePicker()">Custom range</button>
+      <button class="fbtn${trendMode==='custom'?' on':''}" onclick="toggleDP()">📅 Custom</button>
     </div>
 
-    <!-- Custom date picker -->
-    <div id="date-picker" style="display:${trendMode==='custom'?'block':'none'};background:var(--bg2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px">
+    <div id="dp" style="display:${trendMode==='custom'?'block':'none'};background:var(--bg2);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:12px">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
-        <div>
-          <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:4px">From</div>
-          <input type="date" id="tr-from" value="${trendFrom||addD(T(),-30)}" max="${T()}">
-        </div>
-        <div>
-          <div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:4px">To</div>
-          <input type="date" id="tr-to" value="${trendTo||T()}" max="${T()}">
-        </div>
+        <div><div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:4px">From</div>
+          <input type="date" id="tr-from" value="${trendFrom||addD(T(),-30)}" max="${T()}"></div>
+        <div><div style="font-size:11px;font-weight:500;color:var(--text3);margin-bottom:4px">To</div>
+          <input type="date" id="tr-to" value="${trendTo||T()}" max="${T()}"></div>
       </div>
-      <button onclick="applyCustomRange()" style="width:100%;padding:9px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif">Apply</button>
+      <button onclick="applyCustomRange()" style="width:100%;padding:10px;background:var(--accent);color:white;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif">Apply</button>
     </div>
 
-    <!-- KPI cards -->
     <div class="g2">
-      <div class="mc">
-        <div class="ml">Overall grade</div>
-        <div class="mv" style="color:${gc}">${g}</div>
-        <div class="ms">${avgN}% daily avg</div>
-      </div>
-      <div class="mc">
-        <div class="ml">Weeks goal met</div>
-        <div class="mv" style="color:${weeksGoalMet===completeWeeks.length&&completeWeeks.length>0?'#639922':'#EF9F27'}">${weeksGoalMet}/${completeWeeks.length}</div>
-        <div class="ms">≥70% habits on target</div>
-      </div>
+      <div class="mc"><div class="ml">Overall grade</div><div class="mv" style="color:${gc}">${g}</div><div class="ms">${avgN}% daily avg</div></div>
+      <div class="mc"><div class="ml">vs prev period</div><div class="mv" style="color:${delta>=0?'#639922':'#D85A30'}">${delta>=0?'↑':'↓'}</div><div class="ms">${Math.abs(delta)}% diff</div></div>
     </div>
 
-    <!-- Weekly breakdown -->
+    <!-- Weekly overview — one row per week with progress bar -->
     <div class="card">
-      <div class="ctit">Weekly goal: ${WEEK_GOAL}× · ${rangeLabel}</div>
-      ${completeWeeks.length===0?`<div style="font-size:13px;color:var(--text3);text-align:center;padding:10px 0">No complete weeks in this range yet.</div>`:''}
-      ${completeWeeks.map(w=>{
-        const wStart=new Date(w[0].split('-').map(Number).map((v,i)=>i===1?v-1:v));
-        const wEnd=new Date(w[w.length-1].split('-').map(Number).map((v,i)=>i===1?v-1:v));
-        const lbl=`${wStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${wEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'})}`;
-        const habMet=all.filter(h=>w.filter(d=>logs[d]?.[h.id]?.done).length>=WEEK_GOAL).length;
-        const pct=Math.round(habMet/all.length*100);
-        const col=pct>=70?'#639922':pct>=40?'#EF9F27':'#D85A30';
-        const bgCol=pct>=70?'#EAF3DE':pct>=40?'#FAEEDA':'#FAECE7';
+      <div class="ctit">Weekly overview · ${rangeLabel}</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Average % of daily goal per habit</div>
+      ${allWeeks.length===0?`<div style="font-size:13px;color:var(--text3);text-align:center;padding:10px 0">No data in this range.</div>`:''}
+      ${allWeeks.map(w=>{
+        const wStart=parseD(w[0]);
+        const wEnd=parseD(w[w.length-1]);
+        const daysDone=w.filter(d=>d<=t);
+        const lbl=wStart.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' – '+wEnd.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        /* overall: avg daily completion across all habits and all days in week */
+        const totalPossible=all.length*daysDone.length;
+        const totalDone=daysDone.reduce((s,d)=>s+all.filter(h=>logs[d]?.[h.id]?.done).length,0);
+        const weekPct=totalPossible>0?Math.round(totalDone/totalPossible*100):0;
+        /* habits that hit 5× */
+        const habMet=all.filter(h=>daysDone.filter(d=>logs[d]?.[h.id]?.done).length>=WEEK_GOAL).length;
+        const col=weekPct>=75?'#639922':weekPct>=50?'#EF9F27':'#D85A30';
+        const bgCol=weekPct>=75?'#EAF3DE':weekPct>=50?'#FAEEDA':'#FAECE7';
+        const isPartial=w[w.length-1]>t;
         return`<div class="week-row" style="background:${bgCol}">
-          <div style="flex:1">
-            <div style="font-size:12px;font-weight:600;color:${col}">${lbl}</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:1px">${habMet}/${all.length} habits hit ${WEEK_GOAL}×</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <span style="font-size:12px;font-weight:600;color:${col}">${lbl}${isPartial?' <span style="font-weight:400;font-size:10px;color:var(--text3)">(in progress)</span>':''}</span>
+            <span style="font-size:13px;font-weight:700;color:${col}">${weekPct}%</span>
           </div>
-          <span class="wbadge" style="background:${col};color:white">${pct>=70?'✓ Met':'✗ Missed'}</span>
+          ${pb(weekPct,col,8)}
+          <div style="display:flex;justify-content:space-between;margin-top:5px">
+            <span style="font-size:11px;color:var(--text3)">${totalDone}/${totalPossible} completions</span>
+            <span style="font-size:11px;color:${col};font-weight:500">${habMet}/${all.length} habits hit ${WEEK_GOAL}×</span>
+          </div>
         </div>`;
       }).join('')}
     </div>
 
-    <!-- Habit consistency (weekly) -->
+    <!-- Per habit: avg days/week as progress bar -->
     <div class="card">
-      <div class="ctit">Weekly goal completion per habit</div>
-      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">% of weeks where ${WEEK_GOAL}+ days were completed</div>
+      <div class="ctit">Habit progress · avg days/week</div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Goal = ${WEEK_GOAL} days/week · partial weeks included</div>
       ${cData.map(h=>{
-        const wc=h.wc;
-        if(!wc||wc.total===0)return`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:13px;font-weight:500;color:var(--text)">${h.icon} ${h.name}</span><span style="font-size:12px;color:var(--text3)">No data</span></div></div>`;
-        const col=wc.pct>=70?'#639922':wc.pct>=40?'#EF9F27':'#D85A30';
-        return`<div style="margin-bottom:10px">
+        const st=h.st;
+        if(!st)return`<div style="margin-bottom:8px;display:flex;justify-content:space-between"><span style="font-size:13px;font-weight:500;color:var(--text)">${h.icon} ${h.name}</span><span style="font-size:12px;color:var(--text3)">No data</span></div>`;
+        const col=st.pct>=80?'#639922':st.pct>=60?'#EF9F27':'#D85A30';
+        return`<div style="margin-bottom:11px">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
             <span style="font-size:13px;font-weight:500;color:var(--text)">${h.icon} ${h.name}</span>
-            <span style="font-size:13px;font-weight:500;color:${col}">${wc.met}/${wc.total} wks · ${wc.pct}%</span>
-          </div>${pb(wc.pct,col)}</div>`;
+            <span style="font-size:13px;font-weight:500;color:${col}">${st.avg}/${WEEK_GOAL} · ${st.pct}%</span>
+          </div>${pb(st.pct,col,7)}</div>`;
       }).join('')}
     </div>
 
-    <!-- Daily score chart -->
-    <div class="card">
-      <div class="ctit">Daily score · ${rangeLabel}</div>
+    <!-- Chart -->
+    <div class="card"><div class="ctit">Daily score · ${rangeLabel}</div>
       <div style="position:relative;height:150px"><canvas id="sc"></canvas></div>
     </div>
 
-    <!-- Needs attention -->
-    <div class="card"><div class="ctit">⚠️ Needs attention</div>
-      ${[...cData].reverse().slice(0,3).map((h,i)=>`
-        <div style="display:flex;align-items:center;gap:9px;padding:9px 11px;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:7px">
-          <span style="font-size:14px;font-weight:700;color:var(--accent);min-width:22px">#${i+1}</span>
-          <span style="font-size:17px">${h.icon}</span>
-          <div><div style="font-size:13px;font-weight:600;color:var(--text)">${h.name}</div>
-          <div style="font-size:12px;color:var(--text3)">${h.wc?`${h.wc.met}/${h.wc.total} weeks goal met`:'No data'}</div></div>
-        </div>`).join('')}
-    </div>
-
-    <!-- Insights -->
+    <!-- Key insights -->
     <div class="card"><div class="ctit">💡 Key insights</div>
       ${ins.map(tx=>`<div class="ins">${tx}</div>`).join('')}
     </div>`;
@@ -579,7 +497,7 @@ function rTrends(){
     const data=lN.map(d=>d<=t?Math.round(dScore(d)*100):null);
     const skip=Math.max(1,Math.floor(lN.length/8));
     const labels=lN.map((d,i)=>{
-      if(i===0||i%skip===0){const[y,m,dy]=d.split('-').map(Number);return new Date(y,m-1,dy).toLocaleDateString('en-US',{day:'numeric',month:'short'});}return'';
+      if(i===0||i%skip===0){const dt=parseD(d);return dt.toLocaleDateString('en-US',{day:'numeric',month:'short'});}return'';
     });
     scoreChart=new Chart(ctx,{
       type:'line',data:{labels,datasets:[{data,borderColor:'#D85A30',backgroundColor:'rgba(216,90,48,0.10)',fill:true,tension:.4,pointRadius:0,borderWidth:2.5,spanGaps:false}]},
@@ -590,16 +508,12 @@ function rTrends(){
   },100);
 }
 
-function toggleDatePicker(){
-  const dp=document.getElementById('date-picker');
-  if(!dp)return;
-  const showing=dp.style.display==='block';
-  dp.style.display=showing?'none':'block';
-  if(!showing){
-    trendMode='custom';
-    document.querySelectorAll('#v-trends .fbtn').forEach(b=>b.classList.remove('on'));
-    document.querySelectorAll('#v-trends .fbtn')[4]?.classList.add('on');
-  }
+function toggleDP(){
+  const dp=document.getElementById('dp');if(!dp)return;
+  const show=dp.style.display==='block';
+  if(!show){trendMode='custom';}
+  rTrends();
+  setTimeout(()=>{const d2=document.getElementById('dp');if(d2)d2.style.display=show?'none':'block';},10);
 }
 
 /* ── GOALS ── */
@@ -609,20 +523,19 @@ function rGoals(){
     <h2>My goals</h2>
     <button class="sbtn2" onclick="openModal()">+ New habit</button>
   </div>
-  <div style="font-size:13px;font-weight:400;color:var(--text3);margin-bottom:16px">Set daily targets · rename · add custom habits</div>`;
+  <div style="font-size:13px;font-weight:400;color:var(--text3);margin-bottom:16px">Set daily targets · tap ✏️ to rename</div>`;
 
   html+=`<div class="card"><div class="ctit">Daily targets</div>`;
   all.filter(h=>!h.bool).forEach(h=>{
-    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:.5px solid var(--border)">
+    html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:0.5px solid var(--border)">
       <span style="font-size:20px">${h.icon}</span>
       <div style="flex:1;min-width:0">
-        <div id="name-disp-${h.id}" style="font-size:14px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:6px">
-          ${h.name}
-          <button class="edit-btn" onclick="startEdit('${h.id}','${h.name.replace(/'/g,"\\'")}')">✏️</button>
+        <div id="nd-${h.id}" style="font-size:14px;font-weight:500;color:var(--text);display:flex;align-items:center;gap:5px">
+          <span>${h.name}</span><button class="edit-btn" onclick="startEdit('${h.id}')">✏️</button>
         </div>
-        <div id="name-edit-${h.id}" style="display:none;margin-top:3px">
-          <input class="name-edit" type="text" id="ni-${h.id}" value="${h.name}" maxlength="30" style="width:100%">
-          <div style="display:flex;gap:6px;margin-top:5px">
+        <div id="ne-${h.id}" style="display:none;margin-top:4px">
+          <input type="text" id="ni-${h.id}" value="${h.name}" maxlength="30" style="font-size:13px;padding:5px 8px;margin-bottom:5px">
+          <div style="display:flex;gap:6px">
             <button onclick="saveName('${h.id}')" style="padding:4px 12px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif">Save</button>
             <button onclick="cancelEdit('${h.id}')" style="padding:4px 12px;background:var(--bg3);color:var(--text);border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif">Cancel</button>
           </div>
@@ -630,23 +543,23 @@ function rGoals(){
         <div style="font-size:12px;font-weight:400;color:var(--text3)">${h.unit}</div>
       </div>
       <input class="sm" type="number" id="g_${h.id}" value="${goals[h.id]}" min="0" style="width:74px;text-align:center">
-      ${h.custom?`<button class="del-btn" onclick="deleteHabit('${h.id}')" title="Remove">🗑</button>`:'<span style="width:24px"></span>'}
+      ${h.custom?`<button class="del-btn" onclick="deleteHabit('${h.id}')">🗑</button>`:'<span style="width:24px"></span>'}
     </div>`;
   });
   html+=`</div>`;
 
-  html+=`<div class="card"><div class="ctit">Yes / No habits <span style="font-size:11px;font-weight:400;color:var(--text3)">(tap ✏️ to rename)</span></div>`;
+  html+=`<div class="card"><div class="ctit">Yes / No habits</div>`;
   all.filter(h=>h.bool).forEach(h=>{
-    html+=`<div style="padding:8px 0;border-bottom:.5px solid var(--border)">
-      <div id="name-disp-${h.id}" style="display:flex;align-items:center;gap:8px">
+    html+=`<div style="padding:8px 0;border-bottom:0.5px solid var(--border)">
+      <div id="nd-${h.id}" style="display:flex;align-items:center;gap:8px">
         <span style="font-size:20px">${h.icon}</span>
         <span style="font-size:14px;font-weight:400;color:var(--text);flex:1">${h.name}</span>
-        <button class="edit-btn" onclick="startEdit('${h.id}','${h.name.replace(/'/g,"\\'")}')">✏️</button>
+        <button class="edit-btn" onclick="startEdit('${h.id}')">✏️</button>
         ${h.custom?`<button class="del-btn" onclick="deleteHabit('${h.id}')">🗑</button>`:''}
       </div>
-      <div id="name-edit-${h.id}" style="display:none;margin-top:8px;padding-left:28px">
-        <input class="name-edit" type="text" id="ni-${h.id}" value="${h.name}" maxlength="30">
-        <div style="display:flex;gap:6px;margin-top:5px">
+      <div id="ne-${h.id}" style="display:none;margin-top:8px;padding-left:28px">
+        <input type="text" id="ni-${h.id}" value="${h.name}" maxlength="30" style="font-size:13px;padding:5px 8px;margin-bottom:5px">
+        <div style="display:flex;gap:6px">
           <button onclick="saveName('${h.id}')" style="padding:4px 12px;background:var(--accent);color:white;border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif">Save</button>
           <button onclick="cancelEdit('${h.id}')" style="padding:4px 12px;background:var(--bg3);color:var(--text);border:none;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif">Cancel</button>
         </div>
@@ -666,27 +579,12 @@ function rGoals(){
   </div>
   <button class="sbtn" onclick="saveGoals()">Save targets</button>
   <div id="gsaved" style="text-align:center;font-size:13px;font-weight:500;color:#639922;margin-top:10px;opacity:0;transition:opacity .4s"></div>`;
-
   document.getElementById('v-goals').innerHTML=html;
 }
 
-function startEdit(id,currentName){
-  document.getElementById('name-disp-'+id).style.display='none';
-  document.getElementById('name-edit-'+id).style.display='block';
-  const inp=document.getElementById('ni-'+id);if(inp){inp.focus();inp.select();}
-}
-function cancelEdit(id){
-  document.getElementById('name-disp-'+id).style.display='';
-  document.getElementById('name-edit-'+id).style.display='none';
-}
-function saveName(id){
-  const inp=document.getElementById('ni-'+id);
-  if(!inp)return;
-  const v=inp.value.trim();
-  if(!v)return;
-  habitNames[id]=v;save();rGoals();
-}
-
+function startEdit(id){document.getElementById('nd-'+id).style.display='none';document.getElementById('ne-'+id).style.display='block';const i=document.getElementById('ni-'+id);if(i){i.focus();i.select();}}
+function cancelEdit(id){document.getElementById('nd-'+id).style.display='';document.getElementById('ne-'+id).style.display='none';}
+function saveName(id){const i=document.getElementById('ni-'+id);if(!i)return;const v=i.value.trim();if(!v)return;habitNames[id]=v;save();rGoals();}
 function saveGoals(){
   H().filter(h=>!h.bool).forEach(h=>{const el=document.getElementById('g_'+h.id);if(el)goals[h.id]=+el.value;});
   save();
